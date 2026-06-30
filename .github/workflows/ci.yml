@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  repository-health:
+    name: Repository health
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Check required AI guidance files
+        run: |
+          test -f CLAUDE.md
+          test -f AGENTS.md
+          test -f .github/pull_request_template.md
+
+      - name: Check markdown files are not empty
+        run: |
+          find . -name '*.md' -not -path './.git/*' -print0 \
+            | xargs -0 -I{} sh -c 'test -s "$1"' sh {}
+
+  node:
+    name: Node.js checks
+    runs-on: ubuntu-latest
+    if: ${{ hashFiles('package.json') != '' }}
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            npm-shrinkwrap.json
+
+      - name: Install dependencies
+        if: ${{ hashFiles('package-lock.json') != '' || hashFiles('npm-shrinkwrap.json') != '' }}
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint --if-present
+
+      - name: Test
+        run: npm test --if-present
+
+      - name: Build
+        run: npm run build --if-present
+
+  python:
+    name: Python checks
+    runs-on: ubuntu-latest
+    if: ${{ hashFiles('pyproject.toml') != '' || hashFiles('requirements.txt') != '' }}
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies from requirements.txt
+        if: ${{ hashFiles('requirements.txt') != '' }}
+        run: pip install -r requirements.txt
+
+      - name: Install package from pyproject.toml
+        if: ${{ hashFiles('pyproject.toml') != '' }}
+        run: pip install -e .
+
+      - name: Run pytest if available
+        run: |
+          if command -v pytest >/dev/null 2>&1; then
+            pytest
+          else
+            echo "pytest is not installed; skipping Python tests."
+          fi
