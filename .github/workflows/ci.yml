@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
 
       - name: Check required AI guidance files
         run: |
@@ -33,7 +33,7 @@ jobs:
     if: ${{ hashFiles('package.json') != '' }}
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
@@ -62,7 +62,7 @@ jobs:
     if: ${{ hashFiles('pyproject.toml') != '' || hashFiles('requirements.txt') != '' }}
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         with:
